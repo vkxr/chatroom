@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  email       String   @unique
+  password    String
+  avatarColor String   @default("#6C63FF")
+  createdAt   DateTime @default(now())
+
+  createdRooms Room[]       @relation("CreatedRooms")
+  memberships  RoomMember[]
+  messages     Message[]
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  createdAt   DateTime @default(now())
+
+  createdBy   User   @relation("CreatedRooms", fields: [createdById], references: [id])
+  createdById String
+
+  members  RoomMember[]
+  messages Message[]
+}
+
+model RoomMember {
+  id       String   @id @default(cuid())
+  joinedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  room   Room   @relation(fields: [roomId], references: [id])
+  roomId String
+
+  @@unique([userId, roomId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  sender   User   @relation(fields: [senderId], references: [id])
+  senderId String
+  room     Room   @relation(fields: [roomId], references: [id])
+  roomId   String
+}

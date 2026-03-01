@@ -1,0 +1,160 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Global resets ─────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #000;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Custom scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}
+
+/* ── Keyframes ─────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes typing {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Utility classes ───────────────────────────────────────── */
+.bw-card {
+  background: #141414;
+  border: 1px solid #262626;
+  border-radius: 1rem;
+}
+
+.bw-input {
+  background: #0f0f0f;
+  border: 1px solid #262626;
+  border-radius: 0.5rem;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.bw-input::placeholder {
+  color: #737373;
+}
+
+.bw-input:focus {
+  border-color: #525252;
+}
+
+.bw-btn-primary {
+  background: #fff;
+  color: #000;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.bw-btn-primary:hover {
+  background: #e5e5e5;
+}
+
+.bw-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.bw-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.bw-btn-outline {
+  background: transparent;
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #262626;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.bw-btn-outline:hover {
+  background: #141414;
+  border-color: #404040;
+}
+
+.bw-btn-outline:active {
+  transform: scale(0.98);
+}
