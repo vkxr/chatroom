@@ -17,9 +17,9 @@ Real-time room-based chat with WebRTC audio & video calling — built in a stric
 
 ## 📸 Demo
 
-![ChatRoom Demo — Landing, Chat, Video Call, Call Event Pills](./demo.webp)
+![ChatRoom — Landing, Chat, Video Call, Call Event Pills](./demo.png)
 
-> *Landing page → Login → Chat rooms → Real-time messages → Video call → In-chat call event pills*
+> *Landing page → Chat rooms → Real-time messages → Video call → In-chat call event pills*
 
 ---
 
