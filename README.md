@@ -71,7 +71,7 @@ Strict **black & white only**. Inspired by Excalidraw, Linear, and Notion dark m
 
 ### Architecture
 ```
-entropic-rosette/
+chat-room/
 ├── client/                  # React + Vite frontend
 │   ├── src/
 │   │   ├── context/
