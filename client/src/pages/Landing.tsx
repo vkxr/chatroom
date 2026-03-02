@@ -66,7 +66,7 @@ const Landing: React.FC<Props> = ({ onGetStarted, onSignIn }) => (
     <div className="min-h-screen bg-[#000] text-white overflow-y-auto overflow-x-hidden">
 
         {/* ── NAV ─────────────────────────────────────────── */}
-        <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-8 py-4 border-b border-[#1f1f1f] bg-[#000]/90 backdrop-blur-sm">
+        <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-4 sm:px-8 py-4 border-b border-[#1f1f1f] bg-[#000]/90 backdrop-blur-sm">
             <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-md border border-[#262626] bg-[#141414] flex items-center justify-center">
                     <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -100,13 +100,13 @@ const Landing: React.FC<Props> = ({ onGetStarted, onSignIn }) => (
             </div>
 
             {/* Headline */}
-            <h1 className="max-w-3xl text-5xl md:text-7xl font-black tracking-tight leading-[1.04] mb-6 text-white">
+            <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-7xl font-black tracking-tight leading-[1.04] mb-6 text-white">
                 Minimal Communication.
                 <br />
                 <span className="text-[#737373]">Maximum Focus.</span>
             </h1>
 
-            <p className="max-w-lg text-[#737373] text-lg md:text-xl leading-relaxed mb-10">
+            <p className="max-w-lg text-[#737373] text-base sm:text-lg md:text-xl leading-relaxed mb-10 px-2">
                 Real-time messaging, audio, and video — built for clarity. No noise. No distractions.
             </p>
 
@@ -120,8 +120,8 @@ const Landing: React.FC<Props> = ({ onGetStarted, onSignIn }) => (
                 </button>
             </div>
 
-            {/* Product preview */}
-            <div className="w-full max-w-4xl">
+            {/* Product preview — hide on small screens to avoid overflow */}
+            <div className="w-full max-w-4xl hidden sm:block">
                 <div className="rounded-2xl border border-[#1f1f1f] bg-[#0f0f0f] overflow-hidden">
                     {/* Browser frame */}
                     <div className="flex items-center gap-2 px-4 py-3 border-b border-[#1f1f1f] bg-[#0a0a0a]">
@@ -267,7 +267,7 @@ const Landing: React.FC<Props> = ({ onGetStarted, onSignIn }) => (
         </section>
 
         {/* ── FOOTER ──────────────────────────────────────── */}
-        <footer className="border-t border-[#1f1f1f] px-8 py-8">
+        <footer className="border-t border-[#1f1f1f] px-4 sm:px-8 py-8">
             <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded bg-[#141414] border border-[#262626] flex items-center justify-center">

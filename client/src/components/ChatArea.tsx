@@ -67,7 +67,9 @@ const CallEventPill: React.FC<{ event: import('../context/ChatContext').CallEven
 };
 
 // ── Main component ───────────────────────────────────────────────────────────
-const ChatArea: React.FC = () => {
+interface ChatAreaProps { onOpenSidebar?: () => void; }
+
+const ChatArea: React.FC<ChatAreaProps> = ({ onOpenSidebar }) => {
     const { user } = useAuth();
     const { activeRoom, messages, onlineUsers, typingUsers, callEvents } = useChat();
     const { startCall, callStatus } = useCall();
@@ -91,14 +93,24 @@ const ChatArea: React.FC = () => {
     return (
         <div className="flex-1 flex flex-col min-h-0">
             {/* ── Header ── */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[#1f1f1f] bg-[#0f0f0f] flex-shrink-0">
-                <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between px-3 sm:px-5 py-3 border-b border-[#1f1f1f] bg-[#0f0f0f] flex-shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    {/* Hamburger — mobile only */}
+                    <button
+                        onClick={onOpenSidebar}
+                        className="md:hidden flex-shrink-0 w-7 h-7 flex items-center justify-center text-[#737373] hover:text-white transition-colors"
+                        title="Open sidebar"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                    </button>
                     <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#262626] flex items-center justify-center text-xs font-bold text-white flex-shrink-0 uppercase">
                         {activeRoom.name.charAt(0)}
                     </div>
-                    <div>
-                        <h3 className="text-sm font-semibold text-white">{activeRoom.name}</h3>
-                        <p className="text-[10px] text-[#525252]">{activeRoom.description || 'No description'}</p>
+                    <div className="min-w-0">
+                        <h3 className="text-sm font-semibold text-white truncate">{activeRoom.name}</h3>
+                        <p className="text-[10px] text-[#525252] truncate hidden sm:block">{activeRoom.description || 'No description'}</p>
                     </div>
                 </div>
 
@@ -166,8 +178,8 @@ const ChatArea: React.FC = () => {
                                         </span>
                                     )}
                                     <div className={`px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed text-white ${isOwn
-                                            ? 'bg-[#1a1a1a] border border-[#262626] rounded-br-sm'
-                                            : 'bg-[#111] border border-[#1f1f1f] rounded-bl-sm'
+                                        ? 'bg-[#1a1a1a] border border-[#262626] rounded-br-sm'
+                                        : 'bg-[#111] border border-[#1f1f1f] rounded-bl-sm'
                                         }`}>
                                         {msg.content}
                                     </div>
