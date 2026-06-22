@@ -13,7 +13,7 @@ const AudioCallIcon = () => (
 );
 
 const CallIncoming: React.FC = () => {
-    const { incomingCall, acceptCall, declineCall } = useCall();
+    const { incomingCall, acceptCall, declineCall, mediaError } = useCall();
     if (!incomingCall) return null;
 
     const { callerName, callType } = incomingCall;
@@ -40,6 +40,15 @@ const CallIncoming: React.FC = () => {
                 <div className="text-[#a1a1a1]">
                     {callType === 'video' ? <VideoCallIcon /> : <AudioCallIcon />}
                 </div>
+
+                {/* Media error */}
+                {mediaError && (
+                    <div className="w-full px-3 py-2 rounded-lg bg-red-950/60 border border-red-800 text-center">
+                        <p className="text-xs text-red-400 font-medium">⚠ Camera/mic blocked</p>
+                        <p className="text-[10px] text-red-500 mt-0.5">{mediaError}</p>
+                        <p className="text-[10px] text-red-500 mt-0.5">Allow access in browser settings then try again</p>
+                    </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex items-center gap-4 w-full">

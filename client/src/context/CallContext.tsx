@@ -26,6 +26,7 @@ interface CallContextValue {
     isMuted: boolean;
     isCameraOff: boolean;
     isScreenSharing: boolean;
+    mediaError: string | null;
     startCall: (roomId: string, type: CallType) => void;
     acceptCall: () => void;
     declineCall: () => void;
@@ -73,6 +74,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isMuted, setIsMuted] = useState(false);
     const [isCameraOff, setIsCameraOff] = useState(false);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
+    const [mediaError, setMediaError] = useState<string | null>(null);
 
     const peersRef = useRef<Record<string, RTCPeerConnection>>({});
     const localRef = useRef<MediaStream | null>(null);
@@ -81,13 +83,31 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // ── Media helpers ──────────────────────────────────────────────────────
     const getMedia = useCallback(async (type: CallType): Promise<MediaStream> => {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: type === 'video',
-        });
-        localRef.current = stream;
-        setLocalStream(stream);
-        return stream;
+        setMediaError(null);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: type === 'video',
+            });
+            localRef.current = stream;
+            setLocalStream(stream);
+            return stream;
+        } catch (err) {
+            // Video blocked — try audio only as fallback
+            if (type === 'video') {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                    localRef.current = stream;
+                    setLocalStream(stream);
+                    return stream;
+                } catch {
+                    // Audio also blocked
+                }
+            }
+            const msg = err instanceof Error ? err.message : 'Camera/mic access denied';
+            setMediaError(msg);
+            throw err;
+        }
     }, []);
 
     const cleanup = useCallback(() => {
@@ -380,7 +400,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         <CallContext.Provider value={{
             callStatus, callType, callRoomId, incomingCall,
             localStream, remoteStreams,
-            isMuted, isCameraOff, isScreenSharing,
+            isMuted, isCameraOff, isScreenSharing, mediaError,
             startCall, acceptCall, declineCall, endCall,
             toggleMic, toggleCamera, toggleScreenShare,
         }}>
