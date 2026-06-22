@@ -84,30 +84,40 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // ── Media helpers ──────────────────────────────────────────────────────
     const getMedia = useCallback(async (type: CallType): Promise<MediaStream> => {
         setMediaError(null);
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-                video: type === 'video',
-            });
-            localRef.current = stream;
-            setLocalStream(stream);
-            return stream;
-        } catch (err) {
-            // Video blocked — try audio only as fallback
-            if (type === 'video') {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                    localRef.current = stream;
-                    setLocalStream(stream);
-                    return stream;
-                } catch {
-                    // Audio also blocked
-                }
+
+        // Stop any leftover tracks — Windows can report "Could not start audio source"
+        // if a previous getUserMedia call left tracks open
+        localRef.current?.getTracks().forEach(t => t.stop());
+        localRef.current = null;
+
+        // Relaxed audio constraints bypass Windows driver issues more reliably
+        const relaxedAudio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+
+        const attempts: MediaStreamConstraints[] = [
+            // 1. Ideal: both audio + video with relaxed audio
+            ...(type === 'video' ? [{ audio: relaxedAudio, video: { width: 640, height: 480 } }] : []),
+            // 2. Audio + video with plain true constraints
+            ...(type === 'video' ? [{ audio: true, video: true }] : []),
+            // 3. Audio only with relaxed constraints (video call fallback or audio call)
+            { audio: relaxedAudio, video: false },
+            // 4. Most basic — browser decides everything
+            { audio: true, video: false },
+        ];
+
+        for (const constraints of attempts) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                localRef.current = stream;
+                setLocalStream(stream);
+                return stream;
+            } catch (err) {
+                console.warn('[getMedia] attempt failed with', JSON.stringify(constraints), err);
             }
-            const msg = err instanceof Error ? err.message : 'Camera/mic access denied';
-            setMediaError(msg);
-            throw err;
         }
+
+        const msg = 'Microphone unavailable. Fix: (1) Close Discord/Teams/Zoom — they lock the mic, (2) Open services.msc → restart "Windows Audio", (3) Check Windows Settings → Privacy → Microphone → allow browser apps';
+        setMediaError(msg);
+        throw new Error(msg);
     }, []);
 
     const cleanup = useCallback(() => {
