@@ -41,6 +41,22 @@ const ICE_SERVERS = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        // TURN servers — required for mobile networks (carrier-grade NAT)
+        {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject',
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject',
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+            username: 'openrelayproject',
+            credential: 'openrelayproject',
+        },
     ],
 };
 
@@ -262,12 +278,16 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const stream = await getMedia(incomingCall.callType);
             setCallType(incomingCall.callType);
             setCallRoomId(incomingCall.roomId);
+            // Show CallScreen immediately — status must be 'calling' or 'active'
+            // (Chat.tsx only renders CallScreen when isInCall = calling|active)
+            setCallStatus('active');
             // Create peer for the caller (non-initiator — wait for offer)
             createPeer(incomingCall.callerSocketId, incomingCall.callerName, stream, false);
             socket?.emit('acceptCall', { callerSocketId: incomingCall.callerSocketId });
             setIncomingCall(null);
         } catch (err) {
             console.error('Media access failed:', err);
+            setCallStatus('idle');
         }
     }, [socket, incomingCall, getMedia, createPeer]);
 
