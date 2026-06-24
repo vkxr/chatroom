@@ -92,18 +92,21 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localRef.current?.getTracks().forEach(t => t.stop());
         localRef.current = null;
 
-        // Relaxed audio constraints bypass Windows driver issues more reliably
         const relaxedAudio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
 
-        const attempts: MediaStreamConstraints[] = [
-            // 1. Ideal: both audio + video with relaxed audio
-            ...(type === 'video' ? [{ audio: relaxedAudio, video: { width: 640, height: 480 } }] : []),
-            // 2. Audio + video with plain true constraints
-            ...(type === 'video' ? [{ audio: true, video: true }] : []),
-            // 3. Audio only with relaxed constraints (video call fallback or audio call)
+        // Try progressively simpler constraints.  For video calls we also include
+        // video-only fallbacks so a working camera is used even when the microphone
+        // is locked by another app or absent on the device.
+        const attempts: MediaStreamConstraints[] = type === 'video' ? [
+            { audio: relaxedAudio, video: { width: 640, height: 480 } }, // ideal: mic + cam
+            { audio: true,         video: true },                         // basic both
+            { audio: false,        video: { width: 640, height: 480 } }, // cam only (no mic)
+            { audio: false,        video: true },                         // cam only basic
+            { audio: relaxedAudio, video: false },                        // mic only fallback
+            { audio: true,         video: false },                        // mic only basic
+        ] : [
             { audio: relaxedAudio, video: false },
-            // 4. Most basic — browser decides everything
-            { audio: true, video: false },
+            { audio: true,         video: false },
         ];
 
         for (const constraints of attempts) {
@@ -117,7 +120,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         }
 
-        const msg = 'Microphone unavailable. Fix: (1) Close Discord/Teams/Zoom — they lock the mic, (2) Open services.msc → restart "Windows Audio", (3) Check Windows Settings → Privacy → Microphone → allow browser apps';
+        const msg = 'Camera and microphone unavailable. Check: (1) Windows Settings → Privacy → Camera/Microphone → allow desktop apps, (2) Close Discord/Teams/Zoom — they can lock the devices, (3) Ensure a camera/mic is connected';
         setMediaError(msg);
         throw new Error(msg);
     }, []);
