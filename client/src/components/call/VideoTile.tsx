@@ -15,6 +15,8 @@ const VideoTile: React.FC<Props> = ({ stream, name, isMuted, isCameraOff, isSelf
     useEffect(() => {
         if (videoRef.current && stream) {
             videoRef.current.srcObject = stream;
+            // iOS Safari ignores the autoPlay attribute — must call play() explicitly
+            videoRef.current.play().catch(() => {});
         }
     }, [stream]);
 

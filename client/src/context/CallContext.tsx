@@ -80,6 +80,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const localRef = useRef<MediaStream | null>(null);
     const screenStream = useRef<MediaStream | null>(null);
     const callStartRef = useRef<string | null>(null); // ISO timestamp when call started
+    // ICE candidates that arrive before setRemoteDescription completes are queued here
+    const iceCandidateQueue = useRef<Record<string, RTCIceCandidateInit[]>>({});
 
     // ── Media helpers ──────────────────────────────────────────────────────
     const getMedia = useCallback(async (type: CallType): Promise<MediaStream> => {
@@ -124,6 +126,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Close all peer connections
         Object.values(peersRef.current).forEach(pc => pc.close());
         peersRef.current = {};
+        iceCandidateQueue.current = {};
 
         // Stop local tracks
         localRef.current?.getTracks().forEach(t => t.stop());
@@ -164,9 +167,11 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
 
-        // Remote tracks
+        // Remote tracks — build stream from individual tracks so e.streams[0] being
+        // empty (Firefox, mobile WebKit) doesn't break audio/video delivery.
+        const remoteStream = new MediaStream();
         pc.ontrack = (e) => {
-            const [remoteStream] = e.streams;
+            remoteStream.addTrack(e.track);
             setRemoteStreams(prev => ({
                 ...prev,
                 [remoteSocketId]: { stream: remoteStream, name: remoteName },
@@ -237,6 +242,12 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     pc = createPeer(fromSocketId, fromName, stream, false);
                 }
                 await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp!));
+                // Flush ICE candidates that arrived while setRemoteDescription was pending
+                const queued = iceCandidateQueue.current[fromSocketId] ?? [];
+                delete iceCandidateQueue.current[fromSocketId];
+                for (const c of queued) {
+                    await pc.addIceCandidate(new RTCIceCandidate(c)).catch(console.warn);
+                }
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
                 socket.emit('callSignal', {
@@ -246,8 +257,22 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setCallStatus('active');
             } else if (signal.type === 'answer' && pc) {
                 await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp!));
-            } else if (signal.type === 'ice' && pc) {
-                await pc.addIceCandidate(new RTCIceCandidate(signal.candidate!));
+                // Flush ICE candidates that arrived while setRemoteDescription was pending
+                const queued = iceCandidateQueue.current[fromSocketId] ?? [];
+                delete iceCandidateQueue.current[fromSocketId];
+                for (const c of queued) {
+                    await pc.addIceCandidate(new RTCIceCandidate(c)).catch(console.warn);
+                }
+            } else if (signal.type === 'ice') {
+                if (pc && pc.remoteDescription) {
+                    await pc.addIceCandidate(new RTCIceCandidate(signal.candidate!)).catch(console.warn);
+                } else {
+                    // Queue — setRemoteDescription hasn't completed yet (async yield window)
+                    if (!iceCandidateQueue.current[fromSocketId]) {
+                        iceCandidateQueue.current[fromSocketId] = [];
+                    }
+                    iceCandidateQueue.current[fromSocketId].push(signal.candidate!);
+                }
             }
         };
 
@@ -299,6 +324,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
         } catch (err) {
             console.error('Media access failed:', err);
+            // mediaError is already set by getMedia; callStatus stays 'idle' so
+            // ChatArea remains visible and can render the error.
         }
     }, [socket, getMedia]);
 
