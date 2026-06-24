@@ -72,7 +72,7 @@ interface ChatAreaProps { onOpenSidebar?: () => void; }
 const ChatArea: React.FC<ChatAreaProps> = ({ onOpenSidebar }) => {
     const { user } = useAuth();
     const { activeRoom, messages, onlineUsers, typingUsers, callEvents } = useChat();
-    const { startCall, callStatus, mediaError } = useCall();
+    const { startCall, callStatus } = useCall();
     const endRef = useRef<HTMLDivElement>(null);
 
     const canCall = callStatus === 'idle' && !!activeRoom;
@@ -141,16 +141,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({ onOpenSidebar }) => {
                     </button>
                 </div>
             </div>
-
-            {/* ── Media error banner (shown when mic/camera access fails for outgoing call) ── */}
-            {mediaError && (
-                <div className="px-4 py-2.5 bg-red-950/60 border-b border-red-900 flex items-start gap-2">
-                    <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <p className="text-xs text-red-400 leading-relaxed">{mediaError}</p>
-                </div>
-            )}
 
             {/* ── Timeline (messages + call events) ── */}
             <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-0.5">

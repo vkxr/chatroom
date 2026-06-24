@@ -149,13 +149,16 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const createPeer = useCallback((
         remoteSocketId: string,
         remoteName: string,
-        stream: MediaStream,
+        stream: MediaStream | null,
         isInitiator: boolean,
     ): RTCPeerConnection => {
         const pc = new RTCPeerConnection(ICE_SERVERS);
 
-        // Add local tracks
-        stream.getTracks().forEach(t => pc.addTrack(t, stream));
+        // Add local tracks only when media is available (stream can be null when
+        // mic/camera access fails — call proceeds in receive-only mode)
+        if (stream) {
+            stream.getTracks().forEach(t => pc.addTrack(t, stream));
+        }
 
         // ICE candidates → relay via socket
         pc.onicecandidate = (e) => {
@@ -218,8 +221,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Caller: someone accepted → create peer and initiate offer
         const handleCallAccepted = async ({ accepterSocketId, accepterName }: { accepterSocketId: string; accepterName: string }) => {
             setCallStatus('active');
-            const stream = localRef.current ?? await getMedia(callType ?? 'video');
-            createPeer(accepterSocketId, accepterName, stream, true);
+            // Use already-acquired stream; don't retry getMedia (it already failed or succeeded in startCall)
+            createPeer(accepterSocketId, accepterName, localRef.current, true);
         };
 
         const handleCallDeclined = ({ declinerName }: { declinerName: string }) => {
@@ -238,9 +241,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (signal.type === 'offer') {
                 if (!pc) {
-                    // Callee receiving offer — create peer (non-initiator)
-                    const stream = localRef.current!;
-                    pc = createPeer(fromSocketId, fromName, stream, false);
+                    // Callee receiving offer — create peer (non-initiator); stream may be null
+                    pc = createPeer(fromSocketId, fromName, localRef.current, false);
                 }
                 await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp!));
                 // Flush ICE candidates that arrived while setRemoteDescription was pending
@@ -298,55 +300,51 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // ── Public actions ─────────────────────────────────────────────────────
     const startCall = useCallback(async (roomId: string, type: CallType) => {
+        // Try to get media but don't block the call if it fails — the user
+        // can still participate in receive-only mode.
         try {
             await getMedia(type);
-            setCallType(type);
-            setCallRoomId(roomId);
-            setCallStatus('calling');
-            const startedAt = new Date().toISOString();
-            callStartRef.current = startedAt;
-            socket?.emit('callUser', { roomId, callType: type });
-            // Emit call log — direct to local bus + server relay to other room members
-            const startEvent = {
-                id: `cl-local-${Date.now()}`,
-                logType: 'started' as const,
-                callType: type,
-                initiatorName: 'You',
-                startedAt,
-                timestamp: startedAt,
-                roomId,
-            };
-            callEventBus.emit(startEvent);
-            socket?.emit('callLog', {
-                roomId,
-                logType: 'started',
-                callType: type,
-                startedAt,
-            });
         } catch (err) {
-            console.error('Media access failed:', err);
-            // mediaError is already set by getMedia; callStatus stays 'idle' so
-            // ChatArea remains visible and can render the error.
+            console.warn('Media access failed, proceeding without local stream:', err);
         }
+        setCallType(type);
+        setCallRoomId(roomId);
+        setCallStatus('calling');
+        const startedAt = new Date().toISOString();
+        callStartRef.current = startedAt;
+        socket?.emit('callUser', { roomId, callType: type });
+        const startEvent = {
+            id: `cl-local-${Date.now()}`,
+            logType: 'started' as const,
+            callType: type,
+            initiatorName: 'You',
+            startedAt,
+            timestamp: startedAt,
+            roomId,
+        };
+        callEventBus.emit(startEvent);
+        socket?.emit('callLog', {
+            roomId,
+            logType: 'started',
+            callType: type,
+            startedAt,
+        });
     }, [socket, getMedia]);
 
     const acceptCall = useCallback(async () => {
         if (!incomingCall) return;
+        // Try to get media but don't block the call if it fails
         try {
-            const stream = await getMedia(incomingCall.callType);
-            setCallType(incomingCall.callType);
-            setCallRoomId(incomingCall.roomId);
-            // Show CallScreen immediately — status must be 'calling' or 'active'
-            // (Chat.tsx only renders CallScreen when isInCall = calling|active)
-            setCallStatus('active');
-            // Create peer for the caller (non-initiator — wait for offer)
-            createPeer(incomingCall.callerSocketId, incomingCall.callerName, stream, false);
-            socket?.emit('acceptCall', { callerSocketId: incomingCall.callerSocketId });
-            setIncomingCall(null);
+            await getMedia(incomingCall.callType);
         } catch (err) {
-            console.error('Media access failed:', err);
-            setCallStatus('idle');
+            console.warn('Media access failed, proceeding without local stream:', err);
         }
+        setCallType(incomingCall.callType);
+        setCallRoomId(incomingCall.roomId);
+        setCallStatus('active');
+        createPeer(incomingCall.callerSocketId, incomingCall.callerName, localRef.current, false);
+        socket?.emit('acceptCall', { callerSocketId: incomingCall.callerSocketId });
+        setIncomingCall(null);
     }, [socket, incomingCall, getMedia, createPeer]);
 
     const declineCall = useCallback(() => {

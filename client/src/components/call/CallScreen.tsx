@@ -23,7 +23,7 @@ const CallingSpinner: React.FC<{ name: string }> = ({ name }) => (
 );
 
 const CallScreen: React.FC = () => {
-    const { callStatus, callType, localStream, remoteStreams, isCameraOff } = useCall();
+    const { callStatus, callType, localStream, remoteStreams, isCameraOff, mediaError } = useCall();
     const { activeRoom } = useChat();
     const roomName = activeRoom?.name ?? 'Call';
 
@@ -52,6 +52,16 @@ const CallScreen: React.FC = () => {
                 </span>
                 <div className="w-16" /> {/* spacer */}
             </div>
+
+            {/* ── Media warning (mic/camera unavailable — receive-only mode) ── */}
+            {mediaError && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-yellow-950/60 border-b border-yellow-900 flex-shrink-0">
+                    <svg className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                    <p className="text-xs text-yellow-500">Mic/camera unavailable — you are in listen-only mode. Others cannot hear or see you.</p>
+                </div>
+            )}
 
             {/* ── Main video area ── */}
             <div className="flex-1 flex items-center justify-center p-5 overflow-hidden">
