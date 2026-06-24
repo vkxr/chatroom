@@ -109,18 +109,36 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
             { audio: true,         video: false },
         ];
 
+        let lastError: DOMException | null = null;
+
         for (const constraints of attempts) {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 localRef.current = stream;
                 setLocalStream(stream);
                 return stream;
-            } catch (err) {
-                console.warn('[getMedia] attempt failed with', JSON.stringify(constraints), err);
+            } catch (err: unknown) {
+                const domErr = err as DOMException;
+                lastError = domErr;
+                // User explicitly denied in the browser — retrying different constraints won't help
+                if (domErr?.name === 'NotAllowedError' || domErr?.name === 'PermissionDeniedError') {
+                    break;
+                }
+                console.warn('[getMedia] attempt failed with', JSON.stringify(constraints), domErr?.name, domErr?.message);
             }
         }
 
-        const msg = 'Camera and microphone unavailable. Check: (1) Windows Settings → Privacy → Camera/Microphone → allow desktop apps, (2) Close Discord/Teams/Zoom — they can lock the devices, (3) Ensure a camera/mic is connected';
+        const errName = lastError?.name ?? '';
+        let msg: string;
+        if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+            msg = 'Permission denied. Click the camera/lock icon in your browser address bar and allow camera & microphone access, then refresh.';
+        } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+            msg = 'Camera or microphone is in use by another app. Quit Microsoft Teams, Zoom, or Discord from the system tray, then try again.';
+        } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+            msg = 'No camera or microphone detected. Connect a device and try again.';
+        } else {
+            msg = `Camera/microphone unavailable (${errName || 'unknown error'}). Try: close Teams/Zoom/Discord, check Windows Settings → Privacy → Camera & Microphone → allow desktop apps.`;
+        }
         setMediaError(msg);
         throw new Error(msg);
     }, []);
