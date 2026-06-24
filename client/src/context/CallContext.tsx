@@ -210,6 +210,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!socket) return;
 
         const handleIncomingCall = (info: IncomingCallInfo) => {
+            setMediaError(null); // clear any stale error from a previous failed outgoing attempt
             setIncomingCall(info);
             setCallStatus('ringing');
         };
